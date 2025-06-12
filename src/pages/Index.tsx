@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PropertyGrid } from "@/components/PropertyGrid";
 import { AuthModal } from "@/components/AuthModal";
 import { ListPropertyFlow } from "@/components/ListPropertyFlow";
@@ -14,11 +14,19 @@ const Index = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [scrollY, setScrollY] = useState(0);
   const [filters, setFilters] = useState<FilterOptions>({
     priceRange: [5000, 100000],
     propertyTypes: [],
     preferences: []
   });
+
+  // Parallax effect
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -141,19 +149,44 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-rent-bee-yellow/90 to-rent-bee-green/90 py-12 md:py-20">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
+      {/* Hero Section with Parallax */}
+      <section className="relative bg-gradient-to-r from-rent-bee-yellow/90 to-rent-bee-green/90 py-12 md:py-20 overflow-hidden">
+        {/* Parallax Background Elements */}
+        <div 
+          className="absolute inset-0 opacity-20"
+          style={{
+            transform: `translateY(${scrollY * 0.5}px)`,
+            background: 'radial-gradient(circle at 20% 50%, rgba(255,255,255,0.1) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)'
+          }}
+        />
+        <div 
+          className="absolute inset-0 opacity-10"
+          style={{
+            transform: `translateY(${scrollY * 0.3}px)`,
+            background: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(255,255,255,0.1) 35px, rgba(255,255,255,0.1) 70px)'
+          }}
+        />
+        
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h2 
+            className="text-3xl md:text-5xl font-bold text-rent-bee-black mb-4 drop-shadow-lg"
+            style={{ transform: `translateY(${scrollY * 0.1}px)` }}
+          >
             Find Your Perfect Rental with Rent Bee
           </h2>
-          <p className="text-lg md:text-xl text-white/90 mb-8 max-w-3xl mx-auto drop-shadow">
+          <p 
+            className="text-lg md:text-xl text-rent-bee-black/80 mb-8 max-w-3xl mx-auto drop-shadow font-medium"
+            style={{ transform: `translateY(${scrollY * 0.15}px)` }}
+          >
             🏠 Discover thousands of properties for rent. From PGs to apartments, 
             find your next home with ease and buzzing efficiency! 🐝
           </p>
           
           {/* Search and Filter Bar */}
-          <div className="max-w-2xl mx-auto">
+          <div 
+            className="max-w-2xl mx-auto"
+            style={{ transform: `translateY(${scrollY * 0.05}px)` }}
+          >
             <div className="flex flex-col sm:flex-row gap-3 bg-white/95 backdrop-blur-sm p-4 rounded-2xl shadow-xl">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
