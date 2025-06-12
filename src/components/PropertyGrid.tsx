@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { PropertyCard } from "./PropertyCard";
 import { PropertyDetailModal } from "./PropertyDetailModal";
+import { FilterOptions } from "./FilterPanel";
 
 interface Property {
   id: string;
@@ -20,12 +21,14 @@ interface Property {
     phone: string;
     email?: string;
   };
+  preferences?: string[];
 }
 
 interface PropertyGridProps {
   isLoggedIn: boolean;
   onLoginRequired: () => void;
   searchTerm: string;
+  filters: FilterOptions;
 }
 
 const sampleProperties: Property[] = [
@@ -34,7 +37,7 @@ const sampleProperties: Property[] = [
     title: "Modern 2BHK Apartment",
     location: "Koramangala, Bangalore",
     price: 35000,
-    type: "Apartment",
+    type: "apartment",
     bedrooms: 2,
     bathrooms: 2,
     area: 1200,
@@ -45,14 +48,15 @@ const sampleProperties: Property[] = [
       name: "Rajesh Kumar",
       phone: "+91 9876543210",
       email: "rajesh@email.com"
-    }
+    },
+    preferences: ["family", "bachelor"]
   },
   {
     id: "2",
     title: "Spacious 3BHK Villa",
     location: "Whitefield, Bangalore",
     price: 55000,
-    type: "Villa",
+    type: "flat",
     bedrooms: 3,
     bathrooms: 3,
     area: 2000,
@@ -62,53 +66,87 @@ const sampleProperties: Property[] = [
     contact: {
       name: "Priya Sharma",
       phone: "+91 9876543211"
-    }
+    },
+    preferences: ["family"]
   },
   {
     id: "3",
-    title: "Luxury 1BHK Studio",
+    title: "Luxury PG for Working Professionals",
     location: "Indiranagar, Bangalore",
-    price: 28000,
-    type: "Apartment",
+    price: 18000,
+    type: "pg",
     bedrooms: 1,
     bathrooms: 1,
-    area: 800,
+    area: 400,
     image: "/placeholder.svg",
-    description: "Fully furnished luxury studio apartment. Perfect for working professionals.",
-    amenities: ["Parking", "Lift", "Security", "Power Backup", "Swimming Pool"],
+    description: "Fully furnished PG with meals included. Perfect for working professionals.",
+    amenities: ["Meals", "Laundry", "Security", "WiFi", "AC"],
     contact: {
       name: "Amit Patel",
       phone: "+91 9876543212",
       email: "amit@email.com"
-    }
+    },
+    preferences: ["bachelor", "female"]
   },
   {
     id: "4",
-    title: "Commercial Office Space",
+    title: "Student Hostel - Budget Friendly",
     location: "Electronic City, Bangalore",
-    price: 80000,
-    type: "Commercial",
-    bedrooms: 0,
-    bathrooms: 2,
-    area: 1500,
+    price: 12000,
+    type: "hostel",
+    bedrooms: 1,
+    bathrooms: 1,
+    area: 200,
     image: "/placeholder.svg",
-    description: "Modern office space with conference rooms. Ideal for IT companies and startups.",
-    amenities: ["Parking", "Lift", "Security", "Power Backup", "Conference Room"],
+    description: "Affordable hostel accommodation for students. Study room and mess facilities available.",
+    amenities: ["Mess", "Study Room", "Security", "WiFi", "Laundry"],
     contact: {
       name: "Sunita Reddy",
       phone: "+91 9876543213"
-    }
+    },
+    preferences: ["students"]
+  },
+  {
+    id: "5",
+    title: "Comfortable Single Room",
+    location: "HSR Layout, Bangalore",
+    price: 15000,
+    type: "room",
+    bedrooms: 1,
+    bathrooms: 1,
+    area: 300,
+    image: "/placeholder.svg",
+    description: "Well-furnished single room with attached bathroom. Ideal for working professionals.",
+    amenities: ["Furnished", "WiFi", "Security", "Power Backup"],
+    contact: {
+      name: "Rahul Singh",
+      phone: "+91 9876543214"
+    },
+    preferences: ["bachelor", "female"]
   }
 ];
 
-export const PropertyGrid = ({ isLoggedIn, onLoginRequired, searchTerm }: PropertyGridProps) => {
+export const PropertyGrid = ({ isLoggedIn, onLoginRequired, searchTerm, filters }: PropertyGridProps) => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
 
-  const filteredProperties = sampleProperties.filter(property =>
-    property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    property.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProperties = sampleProperties.filter(property => {
+    // Search filter
+    const matchesSearch = property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      property.type.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Price filter
+    const matchesPrice = property.price >= filters.priceRange[0] && property.price <= filters.priceRange[1];
+
+    // Property type filter
+    const matchesType = filters.propertyTypes.length === 0 || filters.propertyTypes.includes(property.type);
+
+    // Preferences filter
+    const matchesPreferences = filters.preferences.length === 0 || 
+      (property.preferences && filters.preferences.some(pref => property.preferences!.includes(pref)));
+
+    return matchesSearch && matchesPrice && matchesType && matchesPreferences;
+  });
 
   const handlePropertyClick = (property: Property) => {
     if (!isLoggedIn) {
@@ -120,20 +158,25 @@ export const PropertyGrid = ({ isLoggedIn, onLoginRequired, searchTerm }: Proper
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProperties.map((property) => (
-          <PropertyCard
-            key={property.id}
-            property={property}
-            onClick={() => handlePropertyClick(property)}
-            showLoginPrompt={!isLoggedIn}
-          />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredProperties.map((property, index) => (
+          <div key={property.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+            <PropertyCard
+              property={property}
+              onClick={() => handlePropertyClick(property)}
+              showLoginPrompt={!isLoggedIn}
+            />
+          </div>
         ))}
       </div>
 
       {filteredProperties.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500 text-lg">No properties found matching your search.</p>
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">😔</div>
+          <h3 className="text-xl font-semibold text-rent-bee-black mb-2">No properties found</h3>
+          <p className="text-muted-foreground mb-4">
+            Try adjusting your search criteria or filters to find more results.
+          </p>
         </div>
       )}
 
