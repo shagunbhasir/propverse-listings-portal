@@ -1,19 +1,29 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PropertyFormData } from "../ListPropertyFlow";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Step4ContactProps {
   formData: PropertyFormData;
   updateFormData: (updates: Partial<PropertyFormData>) => void;
   onSubmit: () => void;
   onPrevious: () => void;
+  isSubmitting?: boolean;
+  error?: string;
 }
 
-export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }: Step4ContactProps) => {
+export const Step4Contact = ({ 
+  formData, 
+  updateFormData, 
+  onSubmit, 
+  onPrevious, 
+  isSubmitting = false,
+  error = ""
+}: Step4ContactProps) => {
   const isFormValid = () => {
     return (
       formData.contactName &&
@@ -24,6 +34,12 @@ export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }:
 
   return (
     <div className="space-y-6">
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+      
       {/* Contact Information */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Contact Information</h3>
@@ -36,6 +52,7 @@ export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }:
               placeholder="Your full name"
               value={formData.contactName}
               onChange={(e) => updateFormData({ contactName: e.target.value })}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -47,6 +64,7 @@ export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }:
               placeholder="+91 9876543210"
               value={formData.contactPhone}
               onChange={(e) => updateFormData({ contactPhone: e.target.value })}
+              disabled={isSubmitting}
             />
           </div>
 
@@ -58,6 +76,7 @@ export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }:
               placeholder="your@email.com"
               value={formData.contactEmail}
               onChange={(e) => updateFormData({ contactEmail: e.target.value })}
+              disabled={isSubmitting}
             />
           </div>
         </div>
@@ -72,6 +91,7 @@ export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }:
           rows={4}
           value={formData.description}
           onChange={(e) => updateFormData({ description: e.target.value })}
+          disabled={isSubmitting}
         />
         <p className="text-sm text-gray-500">
           Include details about nearby landmarks, transportation, and what makes your property special.
@@ -118,15 +138,24 @@ export const Step4Contact = ({ formData, updateFormData, onSubmit, onPrevious }:
       </Card>
 
       <div className="flex justify-between">
-        <Button variant="outline" onClick={onPrevious}>
+        <Button 
+          variant="outline" 
+          onClick={onPrevious}
+          disabled={isSubmitting}
+        >
           Previous
         </Button>
         <Button 
           onClick={onSubmit} 
-          disabled={!isFormValid()}
+          disabled={!isFormValid() || isSubmitting}
           className="px-8 bg-green-600 hover:bg-green-700"
         >
-          Submit Listing
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : "Submit Listing"}
         </Button>
       </div>
     </div>

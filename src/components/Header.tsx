@@ -1,6 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Plus, Menu, X } from "lucide-react";
+import { ProfileButton } from "./ProfileButton";
 
 interface HeaderProps {
   isLoggedIn: boolean;
@@ -53,19 +53,7 @@ export const Header = ({
                 Login / Sign Up
               </Button>
             ) : (
-              <div className="flex items-center space-x-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-rent-bee-black">Welcome back!</p>
-                  <p className="text-xs text-muted-foreground">Happy house hunting! 🏠</p>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={onLogout}
-                  className="border-rent-bee-red text-rent-bee-red hover:bg-rent-bee-red/10"
-                >
-                  Logout
-                </Button>
-              </div>
+              <ProfileButton onLogout={onLogout} />
             )}
           </div>
 

@@ -1,8 +1,8 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PropertyCard } from "./PropertyCard";
 import { PropertyDetailModal } from "./PropertyDetailModal";
 import { FilterOptions } from "./FilterPanel";
+import { propertiesAPI, tokenStorage } from "@/lib/api";
 
 interface Property {
   id: string;
@@ -128,8 +128,58 @@ const sampleProperties: Property[] = [
 
 export const PropertyGrid = ({ isLoggedIn, onLoginRequired, searchTerm, filters }: PropertyGridProps) => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [properties, setProperties] = useState<Property[]>(sampleProperties);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const filteredProperties = sampleProperties.filter(property => {
+  useEffect(() => {
+    const fetchProperties = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await propertiesAPI.getAll(searchTerm, filters);
+        if (response.error) {
+          setError(response.message || "Failed to fetch properties");
+          return;
+        }
+        
+        // Transform API response to match our Property interface
+        const transformedProperties = response.properties.map((prop: any) => ({
+          id: prop.id.toString(),
+          title: prop.title,
+          location: prop.location,
+          price: parseInt(prop.price),
+          type: prop.type,
+          bedrooms: prop.bedrooms ? parseInt(prop.bedrooms) : 0,
+          bathrooms: prop.bathrooms ? parseInt(prop.bathrooms) : 0,
+          area: parseInt(prop.area),
+          image: prop.image || "/placeholder.svg",
+          description: prop.description || "",
+          amenities: typeof prop.amenities === 'string' ? JSON.parse(prop.amenities) : [],
+          contact: {
+            name: prop.contact_name,
+            phone: prop.contact_phone,
+            email: prop.contact_email
+          },
+          preferences: typeof prop.preferences === 'string' ? JSON.parse(prop.preferences) : []
+        }));
+        
+        setProperties(transformedProperties);
+      } catch (err) {
+        console.error("Failed to fetch properties:", err);
+        setError("Failed to fetch properties. Please try again later.");
+        // Fallback to sample data in case of error
+        setProperties(sampleProperties);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Fetch properties from API
+    fetchProperties();
+  }, [searchTerm, filters]);
+
+  const filteredProperties = properties.filter(property => {
     // Search filter
     const matchesSearch = property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -158,19 +208,36 @@ export const PropertyGrid = ({ isLoggedIn, onLoginRequired, searchTerm, filters 
 
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProperties.map((property, index) => (
-          <div key={property.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-            <PropertyCard
-              property={property}
-              onClick={() => handlePropertyClick(property)}
-              showLoginPrompt={!isLoggedIn}
-            />
-          </div>
-        ))}
-      </div>
+      {loading && (
+        <div className="text-center py-16">
+          <div className="animate-spin h-8 w-8 border-4 border-rent-bee-green border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading properties...</p>
+        </div>
+      )}
 
-      {filteredProperties.length === 0 && (
+      {error && (
+        <div className="text-center py-16">
+          <div className="text-6xl mb-4">😢</div>
+          <h3 className="text-xl font-semibold text-rent-bee-black mb-2">Error</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+        </div>
+      )}
+
+      {!loading && !error && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProperties.map((property, index) => (
+            <div key={property.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+              <PropertyCard
+                property={property}
+                onClick={() => handlePropertyClick(property)}
+                showLoginPrompt={!isLoggedIn}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && !error && filteredProperties.length === 0 && (
         <div className="text-center py-16">
           <div className="text-6xl mb-4">😔</div>
           <h3 className="text-xl font-semibold text-rent-bee-black mb-2">No properties found</h3>

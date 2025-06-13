@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AuthModal } from "@/components/AuthModal";
 import { ListPropertyFlow } from "@/components/ListPropertyFlow";
 import { FilterPanel, FilterOptions } from "@/components/FilterPanel";
@@ -7,6 +6,7 @@ import { Header } from "@/components/Header";
 import { HeroSection } from "@/components/HeroSection";
 import { PropertiesSection } from "@/components/PropertiesSection";
 import { useScrollParallax } from "@/hooks/useScrollParallax";
+import { tokenStorage } from "@/lib/api";
 
 const Index = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -23,9 +23,32 @@ const Index = () => {
 
   const scrollY = useScrollParallax();
 
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(tokenStorage.isLoggedIn());
+    };
+    
+    checkAuth();
+    
+    // Listen for storage events (in case user logs in/out in another tab)
+    const handleStorageChange = () => checkAuth();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   const handleLogin = () => {
     setIsLoggedIn(true);
     setIsAuthModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    tokenStorage.removeToken();
+    tokenStorage.removeUser();
+    setIsLoggedIn(false);
   };
 
   const handleListProperty = () => {
@@ -54,7 +77,7 @@ const Index = () => {
         isMobileMenuOpen={isMobileMenuOpen}
         setIsMobileMenuOpen={setIsMobileMenuOpen}
         onLoginClick={() => setIsAuthModalOpen(true)}
-        onLogout={() => setIsLoggedIn(false)}
+        onLogout={handleLogout}
         onListProperty={handleListProperty}
       />
 

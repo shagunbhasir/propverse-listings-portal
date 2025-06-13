@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   Dialog,
@@ -11,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Phone, Mail, Eye, EyeOff } from "lucide-react";
+import { authAPI, tokenStorage } from "@/lib/api";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -22,33 +22,140 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const handlePhoneLogin = () => {
+  const handlePhoneLogin = async () => {
     if (phoneNumber && password) {
-      console.log("Phone login:", phoneNumber);
-      onLogin();
+      setLoading(true);
+      setError("");
+      try {
+        const response = await authAPI.login({
+          username: phoneNumber,
+          password
+        });
+        
+        if (response.error) {
+          setError(response.message || "Login failed");
+          return;
+        }
+        
+        // Save token and user info
+        tokenStorage.setToken(response.token);
+        tokenStorage.setUser(response.user);
+        
+        // Clear form and close modal
+        resetForm();
+        onLogin();
+      } catch (err) {
+        console.error("Login error:", err);
+        setError("Login failed. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
-  const handleEmailLogin = () => {
+  const handleEmailLogin = async () => {
     if (email && password) {
-      console.log("Email login:", email);
-      onLogin();
+      setLoading(true);
+      setError("");
+      try {
+        const response = await authAPI.login({
+          username: email,
+          password
+        });
+        
+        if (response.error) {
+          setError(response.message || "Login failed");
+          return;
+        }
+        
+        // Save token and user info
+        tokenStorage.setToken(response.token);
+        tokenStorage.setUser(response.user);
+        
+        // Clear form and close modal
+        resetForm();
+        onLogin();
+      } catch (err) {
+        console.error("Login error:", err);
+        setError("Login failed. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
+  };
+  
+  const handleRegister = async () => {
+    if (isRegistering && name && password && (email || phoneNumber)) {
+      setLoading(true);
+      setError("");
+      try {
+        const userData = {
+          name,
+          password,
+          email: email || undefined,
+          phone: phoneNumber || undefined
+        };
+        
+        const response = await authAPI.register(userData);
+        
+        if (response.error) {
+          setError(response.message || "Registration failed");
+          return;
+        }
+        
+        // Save token and user info
+        tokenStorage.setToken(response.token);
+        tokenStorage.setUser(response.user);
+        
+        // Clear form and close modal
+        resetForm();
+        onLogin();
+      } catch (err) {
+        console.error("Registration error:", err);
+        setError("Registration failed. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+  
+  const resetForm = () => {
+    setPhoneNumber("");
+    setEmail("");
+    setPassword("");
+    setName("");
+    setIsRegistering(false);
+    setError("");
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        resetForm();
+        onClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-md border-2 border-rent-bee-yellow">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold text-rent-bee-black">
-            Welcome to Rent Bee
+            {isRegistering ? "Create an Account" : "Welcome to Rent Bee"}
           </DialogTitle>
           <p className="text-center text-muted-foreground">
-            Login or Sign up to continue
+            {isRegistering ? "Sign up to continue" : "Login or Sign up to continue"}
           </p>
         </DialogHeader>
+        
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative">
+            {error}
+          </div>
+        )}
         
         <Tabs defaultValue="email" className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-rent-bee-yellow/20">
@@ -67,6 +174,20 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
               Phone
             </TabsTrigger>
           </TabsList>
+          
+          {isRegistering && (
+            <div className="space-y-2 mt-6">
+              <Label htmlFor="name" className="text-rent-bee-black font-medium">Full Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="border-2 focus:border-rent-bee-green"
+              />
+            </div>
+          )}
           
           <TabsContent value="email" className="space-y-4 mt-6">
             <div className="space-y-2">
@@ -103,11 +224,19 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
               </div>
             </div>
             <Button 
-              onClick={handleEmailLogin} 
+              onClick={isRegistering ? handleRegister : handleEmailLogin} 
               className="w-full bg-rent-bee-green hover:bg-rent-bee-green/90 text-white font-medium"
-              disabled={!email || !password}
+              disabled={!email || !password || (isRegistering && !name) || loading}
             >
-              Continue with Email
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : isRegistering ? "Sign Up with Email" : "Continue with Email"}
             </Button>
           </TabsContent>
           
@@ -146,14 +275,48 @@ export const AuthModal = ({ isOpen, onClose, onLogin }: AuthModalProps) => {
               </div>
             </div>
             <Button 
-              onClick={handlePhoneLogin} 
+              onClick={isRegistering ? handleRegister : handlePhoneLogin} 
               className="w-full bg-rent-bee-green hover:bg-rent-bee-green/90 text-white font-medium"
-              disabled={!phoneNumber || !password}
+              disabled={!phoneNumber || !password || (isRegistering && !name) || loading}
             >
-              Continue with Phone
+              {loading ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Processing...
+                </span>
+              ) : isRegistering ? "Sign Up with Phone" : "Continue with Phone"}
             </Button>
           </TabsContent>
         </Tabs>
+        
+        <div className="text-center text-sm mt-4">
+          {isRegistering ? (
+            <>
+              Already have an account?{" "}
+              <button 
+                type="button" 
+                onClick={() => setIsRegistering(false)}
+                className="text-rent-bee-green hover:underline font-medium"
+              >
+                Sign In
+              </button>
+            </>
+          ) : (
+            <>
+              Don't have an account?{" "}
+              <button 
+                type="button" 
+                onClick={() => setIsRegistering(true)}
+                className="text-rent-bee-green hover:underline font-medium"
+              >
+                Create Account
+              </button>
+            </>
+          )}
+        </div>
         
         <div className="text-center text-sm text-muted-foreground border-t pt-4">
           By continuing, you agree to our Terms of Service and Privacy Policy
